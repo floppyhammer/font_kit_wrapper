@@ -1,0 +1,13 @@
+[package]
+name = "font_kit_wrapper"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+font-kit = "0.11.0"
+
+[build-dependencies]
+cbindgen = "0.24.3"
