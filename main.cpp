@@ -5,7 +5,7 @@ extern "C" {
 }
 
 int main() {
-    auto font_buffer = find_system_font("ArialMT");
+    auto font_buffer = find_system_font("FreeSans");
 
     if (font_buffer.data != nullptr && font_buffer.len > 0) {
         std::cout << "Font data is valid." << std::endl;
