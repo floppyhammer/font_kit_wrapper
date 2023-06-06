@@ -31,11 +31,19 @@ pub extern "C" fn find_system_font(font_name_raw: *const c_char) -> FontBuffer {
 
 fn _find_system_font(font_name: String) -> FontBuffer {
     let result = std::panic::catch_unwind(|| {
-        let font = SystemSource::new()
-            .select_by_postscript_name(&*font_name)
-            .unwrap()
-            .load()
-            .unwrap();
+        let font;
+
+        if font_name.is_empty() {
+            let handle = SystemSource::new().all_fonts().unwrap().first().unwrap().clone();
+
+            font = handle.load().unwrap();
+        } else {
+            font = SystemSource::new()
+                .select_by_postscript_name(&*font_name)
+                .unwrap()
+                .load()
+                .unwrap();
+        }
 
         let font_data = font.copy_font_data().unwrap();
         let font_data = (*font_data).clone();
@@ -49,7 +57,7 @@ fn _find_system_font(font_name: String) -> FontBuffer {
         FontBuffer { data, len }
     });
     if result.is_err() {
-        eprintln!("error: rust panicked");
+        eprintln!("ERROR: Rust panicked, failed to find font: {}", font_name);
         return FontBuffer { data: null_mut(), len: 0 };
     }
 
