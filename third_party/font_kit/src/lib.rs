@@ -15,16 +15,17 @@ pub extern "C" fn free_font_buffer(buffer: FontBuffer) {
     }
     let s = unsafe { std::slice::from_raw_parts_mut(buffer.data, buffer.len) };
     unsafe {
+        // Make the raw pointer be owned by a box, then drop it.
         let _ = Box::from_raw(s);
     }
 }
 
 #[no_mangle]
 pub extern "C" fn find_system_font(font_name_raw: *const c_char) -> FontBuffer {
-    let cstr = unsafe { CStr::from_ptr(font_name_raw) };
+    let c_str = unsafe { CStr::from_ptr(font_name_raw) };
 
     // Get copy-on-write Cow<'_, str>, then guarantee a freshly-owned String allocation.
-    let font_name = String::from_utf8_lossy(cstr.to_bytes()).to_string();
+    let font_name = String::from_utf8_lossy(c_str.to_bytes()).to_string();
 
     _find_system_font(font_name)
 }
@@ -33,12 +34,14 @@ fn _find_system_font(font_name: String) -> FontBuffer {
     let result = std::panic::catch_unwind(|| {
         let font;
 
+        let system_source = SystemSource::new();
+
         if font_name.is_empty() {
-            let handle = SystemSource::new().all_fonts().unwrap().first().unwrap().clone();
+            let handle = system_source.all_fonts().unwrap().first().unwrap().clone();
 
             font = handle.load().unwrap();
         } else {
-            font = SystemSource::new()
+            font = system_source
                 .select_by_postscript_name(&*font_name)
                 .unwrap()
                 .load()
@@ -56,8 +59,9 @@ fn _find_system_font(font_name: String) -> FontBuffer {
 
         FontBuffer { data, len }
     });
+
     if result.is_err() {
-        eprintln!("ERROR: Rust panicked, failed to find font: {}", font_name);
+        eprintln!("ERROR: font kit failed to find font: {}", font_name);
         return FontBuffer { data: null_mut(), len: 0 };
     }
 
